@@ -22,7 +22,7 @@ export default function Chat() {
         <div className="section border border-zinc-300 dark:border-zinc-700 rounded-lg p-4 mb-4 bg-zinc-50 dark:bg-zinc-800 shadow-sm" key={user.id}>
           <strong>{user.parts.filter(p => p.type === 'text').map((p, i) => <span key={i}>{p.text}</span>)}</strong>
           {assistant && (
-            <div>Translation: {assistant.parts.filter(p => p.type === 'text').map((p, i) => <span key={i}>{p.text}</span>)}</div>
+            <div className="italic">{assistant.parts.filter(p => p.type === 'text').map((p, i) => <span key={i}>{p.text}</span>)}</div>
           )}
         </div>
       ))}
