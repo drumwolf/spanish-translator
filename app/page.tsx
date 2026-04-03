@@ -9,20 +9,13 @@ export default function Chat() {
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       {messages.map(message => (
-        <div key={message.id} className="whitespace-pre-wrap">
-          {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.parts.map((part, i) => {
-            switch (part.type) {
-              case 'text':
-                return <div key={`${message.id}-${i}`}>{part.text}</div>;
-              case 'tool-weather':
-                return (
-                  <pre key={`${message.id}-${i}`}>
-                    {JSON.stringify(part, null, 2)}
-                  </pre>
-                );
-            }
-          })}
+        <div className="section" key={message.id}>
+          {message.role === 'user' ? 'You: ' : 'Translation: '}
+          {message.parts
+            .filter(part => part.type === 'text')
+            .map((part, i) => (
+              <span key={i}>{part.text}</span>
+            ))}
         </div>
       ))}
 
