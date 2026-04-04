@@ -28,7 +28,7 @@ export default function Chat() {
           className="flex flex-col gap-2"
           onSubmit={e => {
             e.preventDefault();
-            sendMessage({ text: input });
+            sendMessage({ text: input }, { body: { dialect } });
             setInput('');
           }}
         >
@@ -54,7 +54,7 @@ export default function Chat() {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   if (input.trim()) {
-                    sendMessage({ text: input });
+                    sendMessage({ text: input }, { body: { dialect } });
                     setInput('');
                   }
                 }
