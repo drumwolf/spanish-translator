@@ -1,21 +1,44 @@
 'use client';
 
-import { useChat } from '@ai-sdk/react';
 import { useState } from 'react';
+
+type Translation = {
+  id: string;
+  input: string;
+  translation: string;
+  literal: string;
+  notes: string;
+};
 
 export default function Chat() {
   const [input, setInput] = useState('');
   const [dialect, setDialect] = useState('mx');
-  const { messages, sendMessage } = useChat();
+  const [translations, setTranslations] = useState<Translation[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const pairs = messages.reduce((acc, message) => {
-    if (message.role === 'user') {
-      acc.push({ user: message, assistant: null });
-    } else if (message.role === 'assistant' && acc.length > 0) {
-      acc[acc.length - 1].assistant = message;
-    }
-    return acc;
-  }, [] as { user: (typeof messages)[0]; assistant: (typeof messages)[0] | null }[]);
+  async function handleSubmit() {
+    const text = input.trim();
+    if (!text) return;
+
+    setInput('');
+    setIsLoading(true);
+
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, dialect }),
+    });
+
+    const data = await res.json();
+
+    setTranslations(prev => [...prev, {
+      id: crypto.randomUUID(),
+      input: text,
+      ...data,
+    }]);
+
+    setIsLoading(false);
+  }
 
   return (
     <div className="flex h-screen bg-white dark:bg-zinc-950">
@@ -28,8 +51,7 @@ export default function Chat() {
           className="flex flex-col gap-2"
           onSubmit={e => {
             e.preventDefault();
-            sendMessage({ text: input }, { body: { dialect } });
-            setInput('');
+            handleSubmit();
           }}
         >
           <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
@@ -53,19 +75,16 @@ export default function Chat() {
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  if (input.trim()) {
-                    sendMessage({ text: input }, { body: { dialect } });
-                    setInput('');
-                  }
+                  handleSubmit();
                 }
               }}
             />
             <button
               type="submit"
-              disabled={!input.trim()}
+              disabled={!input.trim() || isLoading}
               className="rounded-lg bg-zinc-800 dark:bg-zinc-100 px-4 py-2 text-sm font-medium text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              Translate
+              {isLoading ? 'Translating…' : 'Translate'}
             </button>
           </div>
         </form>
@@ -73,27 +92,36 @@ export default function Chat() {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto p-6">
-        {pairs.length === 0 ? (
+        {translations.length === 0 && !isLoading ? (
           <div className="flex items-center justify-center h-full text-zinc-400 dark:text-zinc-600 text-sm">
             Translations will appear here.
           </div>
         ) : (
           <div className="max-w-2xl mx-auto flex flex-col gap-4">
-            {pairs.map(({ user, assistant }) => (
+            {translations.map(t => (
               <div
-                className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 bg-zinc-50 dark:bg-zinc-800 shadow-sm"
-                key={user.id}
+                key={t.id}
+                className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 bg-zinc-50 dark:bg-zinc-800 shadow-sm flex flex-col gap-2"
               >
-                <strong className="block text-zinc-900 dark:text-zinc-100">
-                  {user.parts.filter(p => p.type === 'text').map((p, i) => <span key={i}>{p.text}</span>)}
-                </strong>
-                {assistant && (
-                  <div className="italic mt-2 text-zinc-600 dark:text-zinc-400">
-                    {assistant.parts.filter(p => p.type === 'text').map((p, i) => <span key={i}>{p.text}</span>)}
-                  </div>
+                <p className="font-semibold text-zinc-900 dark:text-zinc-100">{t.input}</p>
+                <p className="italic text-zinc-600 dark:text-zinc-400">{t.translation}</p>
+                {t.literal && (
+                  <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                    <span className="font-medium">Literal:</span> {t.literal}
+                  </p>
+                )}
+                {t.notes && (
+                  <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                    <span className="font-medium">Note:</span> {t.notes}
+                  </p>
                 )}
               </div>
             ))}
+            {isLoading && (
+              <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 bg-zinc-50 dark:bg-zinc-800 shadow-sm text-sm text-zinc-400 dark:text-zinc-600">
+                Translating…
+              </div>
+            )}
           </div>
         )}
       </main>

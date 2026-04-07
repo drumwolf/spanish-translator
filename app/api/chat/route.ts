@@ -1,23 +1,27 @@
-import {
-  UIMessage,
-  convertToModelMessages,
-  streamText
-} from 'ai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
 
-const DIALECTS: any = {
+const DIALECTS: Record<string, string> = {
   'mx': 'Mexican',
   'es': 'Iberian'
-}
+};
+
+const translationSchema = z.object({
+  translation: z.string().describe('The natural Spanish translation'),
+  literal: z.string().describe('A word-for-word literal translation, if meaningfully different from the natural translation. Empty string if the same.'),
+  notes: z.string().describe('A brief cultural or linguistic note about the translation. Empty string if nothing notable.'),
+});
 
 export async function POST(req: Request) {
-  const { messages, dialect }: { messages: UIMessage[], dialect: string } = await req.json();
-  const spanishDialect = DIALECTS[dialect]
+  const { text, dialect }: { text: string; dialect: string } = await req.json();
+  const spanishDialect = DIALECTS[dialect];
 
-  const result = streamText({
-    model: "anthropic/claude-sonnet-4.5",
-    system: `You are a Spanish translator. Translate everything the user writes into ${spanishDialect} Spanish. Reply with only the translation, nothing else.`,
-    messages: await convertToModelMessages(messages),
+  const { object } = await generateObject({
+    model: 'anthropic/claude-sonnet-4.5',
+    schema: translationSchema,
+    system: `You are a Spanish translator. Translate the user's text into ${spanishDialect} Spanish.`,
+    prompt: text,
   });
 
-  return result.toUIMessageStreamResponse();
+  return Response.json(object);
 }
