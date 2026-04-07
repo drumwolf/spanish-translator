@@ -1,4 +1,4 @@
-import { generateObject } from 'ai';
+import { generateText, Output, zodSchema } from 'ai';
 import { z } from 'zod';
 
 const DIALECTS: Record<string, string> = {
@@ -16,12 +16,12 @@ export async function POST(req: Request) {
   const { text, dialect }: { text: string; dialect: string } = await req.json();
   const spanishDialect = DIALECTS[dialect];
 
-  const { object } = await generateObject({
+  const { output } = await generateText({
     model: 'anthropic/claude-sonnet-4.5',
-    schema: translationSchema,
+    output: Output.object({ schema: zodSchema(translationSchema) }),
     system: `You are a Spanish translator. Translate the user's text into ${spanishDialect} Spanish.`,
     prompt: text,
   });
 
-  return Response.json(object);
+  return Response.json(output);
 }
